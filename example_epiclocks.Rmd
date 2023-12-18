@@ -1,0 +1,31 @@
+---
+title: "Install Epi clocks"
+author: "ks"
+date: "2023-08-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+https://github.com/MorganLevineLab/methylCIPHER
+
+```{r}
+devtools::install_github("MorganLevineLab/prcPhenoAge")
+devtools::install_github("danbelsky/DunedinPoAm38")
+devtools::install_github("MorganLevineLab/methylCIPHER")
+```
+
+
+
+```{r}
+learnr::run_tutorial(name = "instructions", package = "methylCIPHER")
+```
+
+
+```{r}
+library(methylCIPHER)
+calcPhenoAge(exampleBetas, examplePheno, imputation = F)
+```
+
