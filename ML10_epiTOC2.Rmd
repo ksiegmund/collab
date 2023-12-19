@@ -51,10 +51,10 @@ rownames(betas) <- substr(rownames(betas),1,10)
 ```{r read-phenotypes}
 pdata = read_excel(c("~kims/Google Drive/My Drive/Data/Dubeau/1756_Dubeau EPICv2 DNA methylation data package/SAMPLE-ARRAY MAPPING/1756 (Dubeau-8).xlsx"))
 sampleinfo <- strsplit(pdata$`Sample ID`, ', p')
-cell.line <- map_chr(sampleinfo,pluck,1)
-passage <- as.numeric(map_chr(sampleinfo,pluck,2))
-AgeData <- cbind.data.frame(cell.line,passage,gp=rep(1:4,each=2))
-rm(cell.line,passage)
+AgeData <- cbind.data.frame(Barcode = pdata$`Complete Barcode`,
+                      cell.line = map_chr(sampleinfo,pluck,1),
+                      passage = as.numeric(map_chr(sampleinfo,pluck,2)),
+                      gp=rep(1:4,each=2))
 AgeData
 ```
 
@@ -84,6 +84,7 @@ Now plot EPITOC2 for ML10.
 dfx <- epitoc %>%
          filter(cell.line=="ML10")
 #dfx
+save(dfx, file="data/epitoc.rda")
 ```
 
 Plot EPITOC2 for ML10.
