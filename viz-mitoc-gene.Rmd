@@ -1,0 +1,102 @@
+---
+title: "Visualize DNAm Data"
+author: "ks"
+date: "2023-12-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+Load CpG level data on pwds.
+```{r pwd}
+load("data/annotdf.rda")
+load("data/betas.rda")
+load("data/epitoc.rda")
+```
+
+Subset betas to ML10.
+```{r}
+betas <- betas[,dfx$Barcode]
+betas <- add_column(as.data.frame(betas),
+                  IlmnID=rownames(betas))
+head(betas)
+```
+
+
+
+```{r betas-for-mitoch-genes}
+betas_mg <- merge(
+              x = betas,
+              y = annotdf ) %>%
+              arrange(chr,mapinfo)
+```
+
+
+Plot each gene
+```{r genes}
+genename <- unique(betas_mg$ucsc_refgene_name)
+genename <- genename[order(genename)]
+n <- length(genename)
+```
+
+```{r }
+#dfx <- genename
+dfl <- pivot_longer(betas_mg, cols = starts_with("207059690014"),
+                      names_to = "Barcode",
+                      values_to = "betas") %>%
+                    arrange(genename,Barcode,mapinfo)
+#head(dfl)
+dfl <- merge(dfl,
+             dfx[,c("Barcode","passage")])
+head(dfl)
+dfl$passage <- as.factor(dfl$passage)
+```
+
+## Mitochondrial Genes, all EPICv2 CpGs
+
+```{r plot}
+ggplot(dfl,aes(x=mapinfo, y=betas, color = passage)) +
+      geom_point() +
+      geom_line()  +
+      facet_wrap( vars(genename), scales = "free")
+```
+
+## Mitochondrial Genes, CGs annotated to the promoter (TSS200 or exon_1)
+
+```{r}
+table(annotdf$ucsc_refgene_name,annotdf$ucsc_refgene_group)
+```
+
+```{r promoter}
+dfls <- dfl %>% filter(is.element(ucsc_refgene_group,c("TSS200","exon_1")))
+  
+ggplot(dfls,aes(x=mapinfo, y=betas, color = passage)) +
+      geom_point() +
+      geom_line()  +
+      facet_wrap( vars(genename), scales = "free")
+```
+
+## Mitochondrial Genes, CGs annotated to UCSC_CpG_Island
+
+```{r}
+table(annotdf$ucsc_refgene_name[grep("Island",annotdf$Relation_to_UCSC_CpG_Island)])
+```
+
+```{r island}
+dfls <- dfl[grep("Island",dfl$Relation_to_UCSC_CpG_Island),]
+  
+ggplot(dfls,aes(x=mapinfo, y=betas, color = passage)) +
+      geom_point() +
+      geom_line()  + 
+      facet_wrap( vars(genename), scales = "free")
+```
+
+
+
+```{r sI}
+sessionInfo()
+```
+
