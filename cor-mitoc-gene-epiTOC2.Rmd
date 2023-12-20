@@ -1,0 +1,79 @@
+---
+title: "Correlate CpGs with epiTOC2"
+author: "ks"
+date: "2023-12-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+Load CpG level data on pwds.
+```{r pwd}
+load("data/annotdf.rda")
+load("data/betas.rda")
+load("data/epitoc.rda")
+```
+
+Subset betas to ML10.
+```{r}
+betas <- betas[,dfx$Barcode]
+betas <- add_column(as.data.frame(betas),
+                  IlmnID=rownames(betas))
+head(betas)
+```
+
+
+
+```{r betas-for-mitoch-genes}
+betas_mg <- merge(
+              x = betas,
+              y = annotdf ) %>%
+              arrange(chr,mapinfo)
+```
+
+
+Summarize the distribution of correlations between EPITOC2 and DNAm for each CpG (n=4 passages only).
+```{r}
+corWithEpiTOC2 <- apply(betas_mg[,dfx$Barcode], 1, function(x, y=dfx$epiTOC2){
+                      cor(unlist(x),y, method="sp")} )
+#diff89 <- as.matrix(betas_mg[,2:3]) %*% as.matrix(c(-1,1))
+
+cormat <- cbind.data.frame(IlmnID = betas_mg$IlmnID,
+                           genename = betas_mg$genename,
+                           corWithEpiTOC2,
+            diff.y = as.matrix(betas_mg[,2:3]) %*% as.matrix(c(-1,1)),
+            diff.old = as.matrix(betas_mg[,4:5]) %*% as.matrix(c(-1,1))
+)
+cormat
+
+```
+
+Show scatterplot of CpG beta value vs passage for any features with cor > 0.8, and the difference between passages 11 and 12 is double the increase between passages 7 and 8.
+
+```{r}
+idx <- which(cormat$corWithEpiTOC2 > 0.8 & 
+               cormat$diff.y   > 0 &
+               cormat$diff.old > 0 &
+               cormat$diff.old > 2*cormat$diff.y )
+cormat[idx,]
+```
+
+
+```{r}
+par(mfrow=c(1,2))
+for (i in 1:2)
+plot(dfx$passage,betas_mg[idx[i],dfx$Barcode], 
+     main=paste(cormat$genename[idx[i]],":", cormat$IlmnID[idx[i]]),
+     ylab = "Beta Value", xlab = "Passage")
+```
+
+
+
+
+```{r sI}
+sessionInfo()
+```
+
