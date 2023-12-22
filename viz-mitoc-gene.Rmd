@@ -12,9 +12,10 @@ library(tidyverse)
 
 Load CpG level data on pwds.
 ```{r pwd}
-load("data/annotdf.rda")
-load("data/betas.rda")
-load("data/epitoc.rda")
+dn <- c("~kims/Google Drive/My Drive/Data/Dubeau/git-collab")
+load(file.path(dn,"data/annotdf.rda"))
+load(file.path(dn,"data/betas.rda"))
+load(file.path(dn,"data/epitoc.rda"))
 ```
 
 Subset betas to ML10.
