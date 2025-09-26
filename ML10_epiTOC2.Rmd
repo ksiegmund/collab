@@ -11,6 +11,11 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+devtools::install_github("MorganLevineLab/prcPhenoAge")
+devtools::install_github("danbelsky/DunedinPoAm38")
+devtools::install_github("MorganLevineLab/methylCIPHER")
+```
 
 ```{r libraries, message=FALSE}
 library(readxl)
