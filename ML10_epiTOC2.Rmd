@@ -13,9 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
-devtools::install_github("MorganLevineLab/prcPhenoAge")
-devtools::install_github("danbelsky/DunedinPoAm38")
-devtools::install_github("MorganLevineLab/methylCIPHER")
+#devtools::install_github("MorganLevineLab/prcPhenoAge")
+#devtools::install_github("danbelsky/DunedinPoAm38")
+#devtools::install_github("MorganLevineLab/methylCIPHER")
+if (!require("sesame")) { BiocManager::install("sesame"); library("sesame")}
 ```
 
 
@@ -27,6 +28,7 @@ library(sesame)
 library(ggplot2)
 library(tidyr)
 library(methylCIPHER)
+library(patchwork)
 ```
 
 # Pilot Data: ML3, ML10, MCV39  
@@ -34,7 +36,8 @@ library(methylCIPHER)
 Let's read in the MethylationEPICV2 data.
 
 ```{r read-dat, cache=TRUE}
-idat_dir = c("~kims/Google Drive/My Drive/Data/Dubeau/1756_Dubeau EPICv2 DNA methylation data package/IDAT FILES")
+#idat_dir = c("~kims/Google Drive/My Drive/Data/Dubeau/1756_Dubeau EPICv2 DNA methylation data package/IDAT FILES")
+idat_dir = c("/Volumes/extreme ssd/Data/Dubeau/1756_Dubeau EPICv2 DNA methylation data package/IDAT FILES")
 betas = openSesame(idat_dir)
 dim(betas)
 save(betas,file="data/betas.rda")
@@ -56,7 +59,7 @@ rownames(betas) <- substr(rownames(betas),1,10)
 
 
 ```{r read-phenotypes}
-pdata = read_excel(c("~kims/Google Drive/My Drive/Data/Dubeau/1756_Dubeau EPICv2 DNA methylation data package/SAMPLE-ARRAY MAPPING/1756 (Dubeau-8).xlsx"))
+pdata = read_excel(c("/Volumes/extreme ssd/Data/Dubeau/1756_Dubeau EPICv2 DNA methylation data package/SAMPLE-ARRAY MAPPING/1756 (Dubeau-8).xlsx"))
 sampleinfo <- strsplit(pdata$`Sample ID`, ', p')
 AgeData <- cbind.data.frame(Barcode = pdata$`Complete Barcode`,
                       cell.line = map_chr(sampleinfo,pluck,1),
@@ -97,19 +100,90 @@ save(dfx, file="data/epitoc.rda")
 Plot EPITOC2 for ML10.
 
 ```{r plot}
-p <- ggplot(dfx,  aes(x=passage, y=epiTOC2, color = factor(gp))) +
+p1 <- ggplot(dfx,  aes(x=passage, y=epiTOC2, color = factor(gp))) +
           geom_point(size=2) +
-          geom_line(lwd=1) 
- p + ggtitle("epiTOC2") + theme(legend.position="none")
+          geom_line(lwd=1)  + ggtitle("epiTOC2") + 
+          theme(legend.position="none")
+p1
 ```
 
 Is the pattern the same for EPITOC?
 
 ```{r display-epitoc}
-p <- ggplot(dfx,  aes(x=passage, y=EpiTOC, color = factor(gp))) +
+p2 <- ggplot(dfx,  aes(x=passage, y=EpiTOC, color = factor(gp))) +
           geom_point(size=2) +
-          geom_line(lwd=1) 
- p + ggtitle("EpiTOC") + theme(legend.position="none")
+          geom_line(lwd=1) + ggtitle("EpiTOC") + theme(legend.position="none")
+p2
+```
+
+Now let's add stemTOC
+```{r}
+#devtools::install_github("aet21/EpiMitClocks")
+library("EpiMitClocks")
+```
+
+
+# this computes it from methylCIPHER package:
+```{r compute-epitoc2}
+epitoc2 <- calcEpiTOC2(t(betas), AgeData, imputation = F)
+```
+
+
+```{r}
+EpiMitClocks.o<-EpiMitClocks(data.m = betas)
+```
+
+```{r}
+EpiMitClocks.df <- data.frame(epiTOC1 = EpiMitClocks.o$epiTOC1,
+                              epiTOC2 = EpiMitClocks.o$epiTOC2$tnsc,
+                         stemTOCvitro = EpiMitClocks.o$stemTOCvitro,
+                         stemTOC      = EpiMitClocks.o$stemTOC)
+EpiMitClocks.df
+```
+```{r}
+identical(epitoc$epiTOC2, EpiMitClocks.df$epiTOC2)
+identical(epitoc$EpiTOC, EpiMitClocks.df$epiTOC1)
+```
+
+Phew. The two packages replicate, as they should. yay!
+
+Now combine and plot the new stemTOC clocks for ML10
+```{r}
+allclocks <- cbind.data.frame(epitoc,
+                              stemTOCvitro = EpiMitClocks.df$stemTOCvitro,
+                              stemTOC      = EpiMitClocks.df$stemTOC)
+allclocks
+```
+
+
+```{r display}
+dfx <- allclocks %>%
+         filter(cell.line=="ML10")
+#dfx
+save(dfx, file="data/epitoc.rda")
+```
+
+
+Show the growth changes using stemTOCs
+```{r display-stemTOCs}
+p3 <- ggplot(dfx,  aes(x=passage, y=stemTOC, color = factor(gp))) +
+          geom_point(size=2) +
+          geom_line(lwd=1)  + ggtitle("stemTOC") + 
+          theme(legend.position="none")
+p3
+```
+
+
+```{r display-stemTOCs}
+p4 <- ggplot(dfx,  aes(x=passage, y=stemTOCvitro, color = factor(gp))) +
+          geom_point(size=2) +
+          geom_line(lwd=1)  + ggtitle("stemTOCvitro") + 
+          theme(legend.position="none")
+p4
+```
+
+```{r}
+(p1+p2)/(p3+p4)
 ```
 
 
